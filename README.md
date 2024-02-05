@@ -24,7 +24,7 @@ The particular datasets used in this study are listed below. You can find the 'D
 * DS31 Wave IV: Public Use Weights
   * I used the R version for this data.
 
-For a detailed description of this sample, please refer to the **Participants** section in the manuscript.
+For a detailed description of this sample, please refer to the **Sample** section in the manuscript.
 <br>
 
 ### Step 1: Pre-processing the data.
@@ -35,10 +35,11 @@ This step includes:
   * single imputation based on `missForest` for the remaining missingness.
 * Selecting and creating the educational attainment variable.
 * Preliminary analysis for descriptives (weighted).
+* Preliminary analysis for the OLS regression.
 
 See `01_DataPreProcessing.rmd` for detailed instructions, codes and annotations. <br>
 
-Descriptions of this procedure can also be found in the **Measures** and **Data preparation** sections in the manuscript.
+Descriptions of this procedure can also be found in the **Measures**, **Data preparation**, and **Preliminary Analyses** sections in the manuscript.
 <br>
 
 ### Step 2: Tuning, training and testing machine learning models predicting educational attainment.
