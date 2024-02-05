@@ -42,45 +42,24 @@ See `01_DataPreProcessing.rmd` for detailed instructions, codes and annotations.
 Descriptions of this procedure can also be found in the **Measures**, **Data preparation**, and **Preliminary Analyses** sections in the manuscript.
 <br>
 
-### Step 2: Tuning, training and testing machine learning models predicting educational attainment.
-This step is to answer the question, "Do family experiences in adolescence predict college enrollment and graduation in young adulthood?", which includes:
-* Tuning, training, and testing regularized logistic regression and random forests models in predicting college enrollment and college graduation with the 53 family experience variables, using stratified nested cross-validation (5-fold; see visualization below)
-* Calculating AUC and Accuray for each algorithm predicting each outcome
+### Step 2: ML analysis
+This step includes:
+* Tuning, training, and testing lasso regression, decision tree regressor, random forest regressor, and XGBoost models in predicting educational attainment with the family experience variables.
+  * Tuning uses 5-fold cross-validation within the training set; uses the random search strategy to search for optimal hyperparameters for each algorithm.
+  * Calculating MSE and R^2 for each algorithm predicting each outcome.
+* Compute feature importance of all the predictors in the random forests mdoels (i.e., the best performing model).
+* Conduct backward feature selection to identify the set of predictors that remained in models with model performance equivalent to the original model that included all predictors.
+* Use the SHAP method to interpret the random forests model.
+  * Calculate SHAP values;
+  * Visualize single predictor patterns;
+  * Visualize force plots for individual cases;
+  * Visualize interactions.
+ 
 
-Codes for this step include (one Jupyter markdown for each outcome variable and each algorithm):
-* `02-1_collen_LR.ipynb` college enrollment, regularized logistic regression
-* `02-2_collen_RF.ipynb` college enrollment, random forests
-* `02-3_collcom_LR.ipynb` college completion (i.e., graduation), regularized logistic regression
-* `02-4_collcom_RF.ipynb` college completion (i.e., graduation), random forests
+See `02_ML_analysis.ipynb` for the code (python code; in Jupyter markdown).
 
-This step corresponds to the **Method--Data Analysis--Question 1** and **Results--Do Family Experiences in Adolescence Predict Educational Attainment in Young Adulthood?** sections in the manuscript.
+This step corresponds to the **Method--Supervised ML Analyses** section in the manuscript.
 <br>
-
-<img src="https://github.com/xiaoransun/ML.family.edu.AddHealth/blob/master/visualization/nested%205-fold%20cross-validation.jpg" alt="nested cross-validation" width="800">
-
-### Step 3: Selecting the best predictors-- feature importance and recursive feature elimination
-This step is to answer the question, "Which family experience factors are key predictors of young adult educational attainment?", which includes:
-* Compute feature importance of all the 53 predictors in the trained logistic regression and random forests mdoels predicting college enrollment and graduation, respectively.
-* Conduct recursive feature elimination (RFE) to identify the set of predictors that remained in models with prediction accuracy equivalent to the original model that included all predictors. 
-
-Codes for this step include:
-* `03-1_FeatureImportance_collen.ipynb` feature importance and RFE for predicting college enrollment
-* `03-2_FeatureImportance_collcom.ipynb` feature importance and RFE for predicting college graduation
-* `03-3_FeatureImportancePlotting.rmd` Plot feature importance using ggplot2 in R (Figures S1 & S2 in the manuscript supplemental material)
-
-This step corresponds to the **Method--Data Analysis--Question 2** and **Results--Which Family Experiences Are Key Predictors of Educational Attainment?** sections in the manuscript.
-<br>
-
-### Step 4: Visualizing nonlinear and interactive effects--Partial Dependence Plots
-This step is to answer the question, "What complex patterns, including nonlinearities and interactions involving this set of family factors, merit further examination?" <br>
-Here, following the random forests training-testing, 2D and 3D partial dependence plots (PDPs) are made to visualize nonlinear and/or interactive effects between features/predictors. <br>
-Codes for this step include:
-* `04-1_PDP_collen.ipynb` PDPs for random forests model predicting college enrollment
-* `04-2_PDP_collcom.ipynb` PDPs for random forests model predicting college graduation
-
-In particular, within this interactive notebook, you can plug in the selected features and obtain the PDP to your interest!
-
-This step corresponds to the **Method--Data Analysis--Question 3** and **Results--What Complex Patterns of Predictors Merit Further Examination?** sections in the manuscript.
 
 
 
