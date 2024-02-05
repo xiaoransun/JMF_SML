@@ -1,0 +1,1109 @@
+---
+title: "JMF_ML_dataprep"
+author: "Xiaoran Sun"
+date: "3/14/2023"
+output: html_document
+---
+
+This is the data preparation file for the JMF special issue paper on supervsed ML.
+
+
+```{r}
+library(foreign)
+library(psych)
+setwd("~/Desktop/paper/SunProjects/Add Health")
+#reading in Wave 1 In-Home Interview Data
+load("Wave1InHome.rda")
+wave1<-da21600.0001
+spss1<-data.frame(read.spss("21600-0001-Data.sav"))
+dat1<-wave1[c("AID")]
+```
+
+## Family structure
+Parent presence; biological parents
+```{r}
+HasMom<-rep(1, 6504)
+HasMom[which(as.numeric(spss1$H1RM1)==14)]<-0
+HasDad<-rep(1, 6504)
+HasDad[which(as.numeric(spss1$H1RF1)==14)]<-0
+
+dat1$ResidentMotherPresence<-HasMom
+dat1$ResidentFatherPresence<-HasDad
+
+levels(spss1$H1NM1)
+BioMom<-rep(NA, 6504)
+BioMom[which(as.numeric(spss1$H1NM1)==4)]<-1
+BioMom[which(as.numeric(spss1$H1NM1)<3)]<-0
+
+levels(spss1$H1NF1)
+BioDad<-rep(NA, 6504)
+BioDad[which(as.numeric(spss1$H1NF1)==4)]<-1
+BioDad[which(as.numeric(spss1$H1NF1)<3)]<-0
+
+TwoBioParent<-rep(0, 6504)
+TwoBioParent[(which(BioMom+BioDad==2))]<-1
+dat1$ResidentBiologicalParents<-TwoBioParent
+```
+
+Parent married
+```{r}
+levels(spss1$PA10)
+table(as.numeric(spss1$PA10)) #2: married
+PAmarried<-rep(NA, 6504)
+PAmarried[which(as.numeric(spss1$PA10)==2)]<-1
+PAmarried[which(as.numeric(spss1$PA10) %in% c(1,3,4,5))]<-0
+dat1$ParentMarried<-PAmarried
+```
+
+Parent partnered
+```{r}
+#first, check how highly correlated the partnered status is with the marital status
+table(spss1$PB2)
+table(as.numeric(spss1$PB2))
+PApartnered<-rep(NA,6504)
+PApartnered[which(as.numeric(spss1$PB2)<=2)]<-1
+PApartnered[which(as.numeric(spss1$PB2)==4)]<-0
+cor.test(PApartnered, PAmarried) #.78; okay
+table(PApartnered, PAmarried)
+dat1$ParentPartnered<-PApartnered
+```
+
+
+Household size
+```{r}
+levels(spss1$H1HR2A)
+which(as.numeric(spss1$H1HR2A)==4)
+levels(spss1$H1HR2E)
+
+HHsize<-rep(NA,6504)
+HHsize[which(as.numeric(spss1$H1HR2G)!=4)]<-7 #lives with seven or more
+HHsize[which(as.numeric(spss1$H1HR2F)!=4 & as.numeric(spss1$H1HR2G)==4)]<-6 #lives with exactly six
+HHsize[which(as.numeric(spss1$H1HR2E)!=4 & as.numeric(spss1$H1HR2F)==4)]<-5 #lives with exactly five
+HHsize[which(as.numeric(spss1$H1HR2D)!=4 & as.numeric(spss1$H1HR2E)==4)]<-4
+HHsize[which(as.numeric(spss1$H1HR2C)!=4 & as.numeric(spss1$H1HR2D)==4)]<-3
+HHsize[which(as.numeric(spss1$H1HR2B)!=4 & as.numeric(spss1$H1HR2C)==4)]<-2
+HHsize[which(as.numeric(spss1$H1HR2A)!=4 & as.numeric(spss1$H1HR2B)==4)]<-1
+HHsize[which(as.numeric(spss1$H1HR2A)==4)]<-0 #lives alone
+summary(as.factor(HHsize))
+
+dat1$HouseholdSize<-HHsize
+```
+
+Number of siblings
+```{r}
+levels(spss1$H1HR3A)
+SibNum<-rep(0,6504)
+SibA<-(as.numeric(spss1$H1HR3A)==5|as.numeric(spss1$H1HR3A)==8)
+SibB<-(as.numeric(spss1$H1HR3B)==5|as.numeric(spss1$H1HR3B)==8)
+SibC<-(as.numeric(spss1$H1HR3C)==5|as.numeric(spss1$H1HR3C)==8)
+SibD<-(as.numeric(spss1$H1HR3D)==5|as.numeric(spss1$H1HR3D)==8)
+SibE<-(as.numeric(spss1$H1HR3E)==5|as.numeric(spss1$H1HR3E)==8)
+SibF<-(as.numeric(spss1$H1HR3F)==5|as.numeric(spss1$H1HR3F)==8)
+SibG<-(as.numeric(spss1$H1HR3G)==5|as.numeric(spss1$H1HR3G)==8)
+SibH<-(as.numeric(spss1$H1HR3H)==5|as.numeric(spss1$H1HR3H)==8)
+SibI<-(as.numeric(spss1$H1HR3I)==5|as.numeric(spss1$H1HR3I)==8)
+SibJ<-(as.numeric(spss1$H1HR3J)==5|as.numeric(spss1$H1HR3J)==8)
+SibK<-(as.numeric(spss1$H1HR3K)==5|as.numeric(spss1$H1HR3K)==8)
+SibL<-(as.numeric(spss1$H1HR3L)==5|as.numeric(spss1$H1HR3L)==8)
+SibM<-(as.numeric(spss1$H1HR3M)==5|as.numeric(spss1$H1HR3M)==8)
+SibN<-(as.numeric(spss1$H1HR3N)==5|as.numeric(spss1$H1HR3N)==8)
+SibO<-(as.numeric(spss1$H1HR3O)==5|as.numeric(spss1$H1HR3O)==8)
+SibP<-(as.numeric(spss1$H1HR3P)==5|as.numeric(spss1$H1HR3P)==8)
+SibNum<-SibA+SibB+SibC+SibD+SibE+SibF+SibG+SibH+SibI+SibJ+SibK+SibL+SibM+SibN+SibO+SibP
+summary(SibNum)
+cor(SibNum, HHsize)
+head(as.numeric(spss1$H1HR3A))
+dat1$NumberSiblings<-SibNum
+```
+
+Biological Birth Order
+```{r}
+BirthOrder<-rep(NA, 6504)
+levels(spss1$H1HR14)
+BirthOrder[which(as.numeric(spss1$H1HR14)==1)]<-1 #only child
+levels(spss1$H1HR15)
+BirthOrder[which(as.numeric(spss1$H1HR15)==1)]<-1
+BirthOrder[which(as.numeric(spss1$H1HR15)==2)]<-2
+BirthOrder[which(as.numeric(spss1$H1HR15)==3)]<-3
+BirthOrder[which(as.numeric(spss1$H1HR15)>=4 & as.numeric(spss1$H1HR15)<=14)]<-4 #4 and above
+summary(as.factor(BirthOrder))
+dat1$BirthOrder<-BirthOrder
+```
+
+parent age
+```{r}
+head(wave1$PA2)  #responded by parents
+dat1$ParentAge<-wave1$PA2
+```
+
+## Family SES
+
+Parent education (resident parents)
+* no mom/dad code as mean 
+YA codings: 8 = 8th grade or less, 10 = some high school, 12 = high school graduate, 13 = vocational/technical training after high school, 14 = some college, 16 = bachelor's degree, 17 = some graduate school or some post-baccalaureate professional education, 18 = master's degree, 19 = some graduate training beyond a master’s degree, and 20 = doctoral degree or completed post-baccalaureate professional education (e.g., law school, medical school, nurse). 
+```{r}
+#youth report
+table(wave1$H1RM1)
+Ymomeduc_raw<-as.numeric(substr(wave1$H1RM1, start = 2, stop = 3)) 
+Ymomeduc1<-rep(NA, 6504)
+Ymomeduc1[which(Ymomeduc_raw==10)]<-0 #never went to school
+Ymomeduc1[which(Ymomeduc_raw==1)]<-8 #eight grade or less
+Ymomeduc1[which(Ymomeduc_raw==2)]<-10 #>8th grade/didn't graduate high school
+Ymomeduc1[which(Ymomeduc_raw==3)]<-11 #>Business/trade/voc. school instead high school 
+Ymomeduc1[which(Ymomeduc_raw==4|Ymomeduc_raw==5)]<-12 #High school graduate; GED 
+Ymomeduc1[which(Ymomeduc_raw==6)]<-13 #Business/trade/voc. school after high school
+Ymomeduc1[which(Ymomeduc_raw==7)]<-14 #College/didn't graduate
+Ymomeduc1[which(Ymomeduc_raw==8)]<-16 #Graduated from college/university
+Ymomeduc1[which(Ymomeduc_raw==9)]<-17 #Prof training beyond 4-year college/university
+table(Ymomeduc1)
+Ymomeduc1[which(Ymomeduc_raw==11|Ymomeduc_raw==12)]<-NA
+mean(Ymomeduc1, na.rm = TRUE)
+length(spss1[as.numeric(spss1$H1RM1)==14,]$AID) #legitimate skip
+Ymomeduc1[which(as.numeric(spss1$H1RM1)==14)]<- 13.22558 #no resident mom
+summary(as.factor(Ymomeduc1))
+
+table(wave1$H1RF1)
+Ydadeduc_raw<-as.numeric(substr(wave1$H1RF1, start = 2, stop = 3)) 
+Ydadeduc1<-rep(NA, 6504)
+Ydadeduc1[which(Ydadeduc_raw==10)]<-0 #never went to school
+Ydadeduc1[which(Ydadeduc_raw==1)]<-8 #eight grade or less
+Ydadeduc1[which(Ydadeduc_raw==2)]<-10 #>8th grade/didn't graduate high school
+Ydadeduc1[which(Ydadeduc_raw==3)]<-11 #>Business/trade/voc. school instead high school 
+Ydadeduc1[which(Ydadeduc_raw==4|Ydadeduc_raw==5)]<-12 #High school graduate; GED 
+Ydadeduc1[which(Ydadeduc_raw==6)]<-13 #Business/trade/voc. school after high school
+Ydadeduc1[which(Ydadeduc_raw==7)]<-14 #College/didn't graduate
+Ydadeduc1[which(Ydadeduc_raw==8)]<-16 #Graduated from college/university
+Ydadeduc1[which(Ydadeduc_raw==9)]<-17 #Prof training beyond 4-year college/university
+table(Ydadeduc1)
+Ydadeduc1[which(Ydadeduc_raw==11|Ydadeduc_raw==12)]<-NA
+mean(Ydadeduc1, na.rm = TRUE)
+length(spss1[as.numeric(spss1$H1RF1)==14,]$AID) #legitimate skip
+Ydadeduc1[which(as.numeric(spss1$H1RF1)==14)]<- 13.36908 #no resident dad
+summary(as.factor(Ydadeduc1))
+
+dat1$MotherEducation<-Ymomeduc1
+dat1$FatherEducation<-Ydadeduc1
+```
+
+Parent occupation
+* recode into five ordered categories (Feliciano & Lanuza, 2017):
+  professionals, office/sales workers, blue-collar workers, crafts/military/farm/other, and unemployed (5 to 1)
+* Note: No mom/dad code as mean
+```{r}
+#youth report
+levels(wave1$H1RM4)
+Ymomjob<-as.numeric(substr(wave1$H1RM4, start = 2, stop = 3))
+Ymomjob_re<-rep(NA, 6504)
+Ymomjob_re[which(Ymomjob<=4)]<-5  
+Ymomjob_re[which(Ymomjob==5|Ymomjob==6)]<-4
+Ymomjob_re[which(Ymomjob==7|Ymomjob==9|Ymomjob==10|Ymomjob==11|Ymomjob==12)]<-3
+Ymomjob_re[which(Ymomjob==8|Ymomjob==13|Ymomjob==14|Ymomjob==15)]<-2
+Ymomjob_re[which(Ymomjob==16)]<-1
+mean(Ymomjob_re, na.rm = TRUE)
+Ymomjob_re[which(as.numeric(spss1$H1RM4)==18)]<-3.350598
+summary(as.factor(Ymomjob_re))
+
+Ydadjob<-as.numeric(substr(wave1$H1RF4, start = 2, stop = 3))
+Ydadjob_re<-rep(NA, 6504)
+Ydadjob_re[which(Ydadjob<=4)]<-5  
+Ydadjob_re[which(Ydadjob==5|Ydadjob==6)]<-4
+Ydadjob_re[which(Ydadjob==7|Ydadjob==9|Ydadjob==10|Ydadjob==11|Ydadjob==12)]<-3
+Ydadjob_re[which(Ydadjob==8|Ydadjob==13|Ydadjob==14|Ydadjob==15)]<-2
+Ydadjob_re[which(Ydadjob==16)]<-1
+mean(Ydadjob_re, na.rm = TRUE)
+Ydadjob_re[which(as.numeric(spss1$H1RF4)==18)]<-3.347201
+summary(as.factor(Ydadjob_re))
+
+dat1$MotherOccupationPrestige<-Ymomjob_re
+dat1$FatherOccupationPrestige<-Ydadjob_re
+```
+
+Parent working for pay
+0= no or None for occupation; 1 = yes; legitimate skip = mean
+```{r}
+table(wave1$H1RM5)
+Ymompay<-as.numeric(substr(wave1$H1RM5, start = 2, stop = 2))
+table(Ymompay)
+Ymompay[which(Ymomjob==16)]<-0
+table(Ymompay)
+mean(Ymompay, na.rm = TRUE)
+Ymompay[which(as.numeric(spss1$H1RM4)==18)]<-0.7734247
+table(Ymompay)
+
+table(wave1$H1RF5)
+Ydadpay<-as.numeric(substr(wave1$H1RF5, start = 2, stop = 2))
+table(Ydadpay)
+Ydadpay[which(Ydadjob==16)]<-0
+table(Ydadpay)
+mean(Ydadpay, na.rm = TRUE)
+Ydadpay[which(as.numeric(spss1$H1RF4)==18)]<-0.929593
+table(Ydadpay)
+
+dat1$MotherWorkForPay<-Ymompay
+dat1$FatherWorkForPay<-Ydadpay
+
+```
+
+family income (in thousand, log)
+```{r}
+dat1$FamilyIncome<-log(wave1$PA55+1)
+exp(3.17)-1
+```
+
+parent receiving public assistance
+```{r}
+PAassistance<-as.numeric(substr(wave1$PA21, start = 2, stop = 2))
+dat1$PublicAssistance<-PAassistance
+```
+
+Family receive welfare
+```{r}
+welfare1<-as.numeric(substr(wave1$PA57B, start = 2, stop = 2))
+welfare2<-as.numeric(substr(wave1$PA57C, start = 2, stop = 2))
+welfare3<-as.numeric(substr(wave1$PA57D, start = 2, stop = 2))
+welfare<-rowSums(cbind(welfare1, welfare2, welfare3), na.rm = TRUE)
+welfare[which(is.na(welfare1)&is.na(welfare2)&is.na(welfare3))]<-NA
+welfare[which(welfare>=1)]<-1
+dat1$Welfare<-welfare
+```
+
+Parent economic hardship;
+```{r}
+levels(spss1$PA56)
+PAecohard<-1-as.numeric(substr(wave1$PA56, start = 2, stop = 2))
+dat1$EconomicHardship<-PAecohard
+```
+
+## family relationships and parenting
+family social support (Ryabov, 2016)
+```{r}
+levels(wave1$H1PR3)
+levels(wave1$H1PR5)
+levels(wave1$H1PR7)
+levels(wave1$H1PR8)
+famsup1<-as.numeric(substr(wave1$H1PR3, start = 2, stop = 2))
+famsup1[which(famsup1==6)]<-NA #"does not apply"
+famsup2<-as.numeric(substr(wave1$H1PR5, start = 2, stop = 2))
+famsup2[which(famsup2==6)]<-NA #"does not apply"
+famsup3<-as.numeric(substr(wave1$H1PR7, start = 2, stop = 2))
+famsup3[which(famsup3==6)]<-NA #"does not apply"
+famsup4<-as.numeric(substr(wave1$H1PR8, start = 2, stop = 2))
+famsup4[which(famsup4==6)]<-NA #"does not apply"
+
+famsup<-rowMeans(cbind(famsup1, famsup2, famsup3, famsup4), na.rm = TRUE)
+dat1$FamilySocialSupport<-famsup
+```
+
+Shared dinner with parents
+*no parent = mean
+```{r}
+levels(spss1$H1WP8)
+dinner<-as.numeric(substr(wave1$H1WP8, start = 2, stop = 2)) 
+mean(dinner, na.rm=TRUE)
+dinner[which(as.numeric(spss1$H1WP8)==10)]<-4.608819
+dat1$SharedDinner<-dinner
+```
+
+intergenerational closure
+```{r}
+levels(wave1$PC17)
+PAclosure<-as.numeric(substr(wave1$PC17, start = 2, stop = 2))
+dat1$IntergenerationalClosure<-PAclosure
+```
+
+Parent connection to child's friends
+```{r}
+levels(wave1$PC10)
+PAconnection1<-as.numeric(substr(wave1$PC10, start = 2, stop = 2))
+PAconnection1[which(PAconnection1==2)]<-1 #doesn't go to school-- also know
+table(PAconnection1)
+
+table(wave1$PC11)
+PAconnection2<-as.numeric(substr(wave1$PC11, start = 2, stop = 2))
+table(PAconnection2)
+
+table(wave1$PC12)
+PAconnection3<-as.numeric(substr(wave1$PC12, start = 2, stop = 2))
+table(PAconnection3)
+
+table(spss1$PC13) #recode: bad & neither good/bad & don't know ->0; good influence-> 1
+PAconnection4<-as.numeric(spss1$PC13)
+table(PAconnection4)
+PAconnection4[which(PAconnection4==4)]<-NA #refused to answer
+table(PAconnection4)
+PAconnection4[which(PAconnection4!=3)]<-0
+table(PAconnection4)
+
+PAconnection<-PAconnection1+PAconnection2+PAconnection3+PAconnection4
+
+dat1$ParentConnectionFriends<-PAconnection
+```
+
+Mother/father-adolescent relationship quality
+```{r}
+mrel1<-as.numeric(substr(wave1$H1WP9, start = 2, stop = 2))
+mrel2<-as.numeric(substr(wave1$H1WP10, start = 2, stop = 2))
+mrel3<-6-as.numeric(substr(wave1$H1PF1, start = 2, stop = 2))
+mrel4<-6-as.numeric(substr(wave1$H1PF4, start = 2, stop = 2))
+mrel5<-6-as.numeric(substr(wave1$H1PF5, start = 2, stop = 2))
+mrel<-rowMeans(cbind(mrel1, mrel2, mrel3, mrel4, mrel5), na.rm = TRUE)
+mean(mrel, na.rm=TRUE)
+mrel[which(as.numeric(spss1$H1WP9)==7)]<-4.430109 #no mom
+
+drel1<-as.numeric(substr(wave1$H1WP13, start = 2, stop = 2))
+drel2<-as.numeric(substr(wave1$H1WP14, start = 2, stop = 2))
+drel3<-6-as.numeric(substr(wave1$H1PF23, start = 2, stop = 2))
+drel4<-6-as.numeric(substr(wave1$H1PF24, start = 2, stop = 2))
+drel5<-6-as.numeric(substr(wave1$H1PF25, start = 2, stop = 2))
+drel<-rowMeans(cbind(drel1, drel2, drel3, drel4, drel5), na.rm = TRUE)
+mean(drel, na.rm=TRUE)
+drel[which(as.numeric(spss1$H1WP13)==7)]<-4.243704
+
+dat1$MotherRelationshipQuality<-mrel
+dat1$FatherRelationshipQuality<-drel
+```
+
+shared activities (in general)
+* no mom/dad = mean
+```{r}
+mtime1<-as.numeric(substr(wave1$H1WP17A, start = 2, stop = 2))
+mtime2<-as.numeric(substr(wave1$H1WP17B, start = 2, stop = 2))
+mtime3<-as.numeric(substr(wave1$H1WP17C, start = 2, stop = 2))
+mtime4<-as.numeric(substr(wave1$H1WP17D, start = 2, stop = 2))
+mtime5<-as.numeric(substr(wave1$H1WP17E, start = 2, stop = 2))
+mtime6<-as.numeric(substr(wave1$H1WP17F, start = 2, stop = 2))
+mtime7<-as.numeric(substr(wave1$H1WP17G, start = 2, stop = 2))
+mtime8<-as.numeric(substr(wave1$H1WP17H, start = 2, stop = 2))
+mtime9<-as.numeric(substr(wave1$H1WP17I, start = 2, stop = 2))
+mtime10<-as.numeric(substr(wave1$H1WP17J, start = 2, stop = 2))
+mtime<-mtime1+mtime2+mtime3+mtime4+mtime5+mtime6+mtime7+mtime8+mtime9+mtime10
+mean(mtime, na.rm = TRUE)
+mtime[which(as.numeric(spss1$H1WP17A)==4)]<- 3.951984 #no mom
+summary(as.factor(mtime))
+
+dtime1<-as.numeric(substr(wave1$H1WP18A, start = 2, stop = 2))
+dtime2<-as.numeric(substr(wave1$H1WP18B, start = 2, stop = 2))
+dtime3<-as.numeric(substr(wave1$H1WP18C, start = 2, stop = 2))
+dtime4<-as.numeric(substr(wave1$H1WP18D, start = 2, stop = 2))
+dtime5<-as.numeric(substr(wave1$H1WP18E, start = 2, stop = 2))
+dtime6<-as.numeric(substr(wave1$H1WP18F, start = 2, stop = 2))
+dtime7<-as.numeric(substr(wave1$H1WP18G, start = 2, stop = 2))
+dtime8<-as.numeric(substr(wave1$H1WP18H, start = 2, stop = 2))
+dtime9<-as.numeric(substr(wave1$H1WP18I, start = 2, stop = 2))
+dtime10<-as.numeric(substr(wave1$H1WP18J, start = 2, stop = 2))
+dtime<-dtime1+dtime2+dtime3+dtime4+dtime5+dtime6+dtime7+dtime8+dtime9+dtime10
+mean(dtime, na.rm = TRUE)
+dtime[which(as.numeric(spss1$H1WP18A)==4)]<- 2.910392 #no dad
+summary(as.factor(dtime))
+
+dat1$MotherSharedActivity<-mtime
+dat1$FatherSharedActivity<-dtime
+```
+
+Parent relationship quality with spouse/partner
+* Skip pattern: PApartnered = 0: mean imputation
+* three items not at the same scale / order; need to reverse code & standardize; the reference (King et al., 2020) isn't clear about how they computed the composite score
+```{r}
+table(wave1$PB18)
+PArelation1<-scale(wave1$PB18)
+table(wave1$PB19)
+PArelation2<-scale(1-as.numeric(substr(wave1$PB19, start = 2, stop = 2)))
+table(PArelation2)
+table(wave1$PB20)
+PArelation3<-scale(as.numeric(substr(wave1$PB20, start = 2, stop = 2)))
+table(PArelation3)
+
+PArelation<-rowMeans(cbind(PArelation1, PArelation2, PArelation3), na.rm = T)
+mean(PArelation, na.rm = T)
+
+PArelation[which(PApartnered==0)]<--0.0005413742
+dat1$ParentPartnerRelationship<-PArelation
+```
+
+Parental control
+* reverse-coded
+*no parent = mean
+```{r}
+control1<-1-as.numeric(substr(wave1$H1WP1, start = 2, stop = 2))
+control2<-1-as.numeric(substr(wave1$H1WP2, start = 2, stop = 2))
+control3<-1-as.numeric(substr(wave1$H1WP3, start = 2, stop = 2))
+control4<-1-as.numeric(substr(wave1$H1WP4, start = 2, stop = 2))
+control5<-1-as.numeric(substr(wave1$H1WP5, start = 2, stop = 2))
+control6<-1-as.numeric(substr(wave1$H1WP6, start = 2, stop = 2))
+control7<-1-as.numeric(substr(wave1$H1WP7, start = 2, stop = 2))
+control<-rowSums(cbind(control1, control2, control3, control4, control5, control6, control7), na.rm = TRUE) 
+mean(control, na.rm=TRUE)
+control[which(as.numeric(spss1$H1WP1)==4)]<-1.807349
+summary(as.factor(control))
+dat1$ParentControl<-control
+```
+
+mother/father supervision
+* no mom/dad = mean
+```{r}
+#most/all of the time/takes = 1; other = 0
+levels(wave1$H1RM11)
+mspv1<-as.numeric(substr(wave1$H1RM11, start = 2, stop = 2))
+mspv1[which(mspv1==1|mspv1==2|mspv1==6)]<-1
+mspv1[which(mspv1==3|mspv1==4|mspv1==5)]<-0
+mspv2<-as.numeric(substr(wave1$H1RM12, start = 2, stop = 2))
+mspv2[which(mspv2==1|mspv2==2|mspv2==6)]<-1
+mspv2[which(mspv2==3|mspv2==4|mspv2==5)]<-0
+mspv3<-as.numeric(substr(wave1$H1RM13, start = 2, stop = 2))
+mspv3[which(mspv3==1|mspv3==2)]<-1
+mspv3[which(mspv3==3|mspv3==4|mspv3==5)]<-0
+mspv<-rowSums(cbind(mspv1, mspv2, mspv3), na.rm = TRUE)
+mean(mspv)
+mspv[which(as.numeric(spss1$H1RM11)==8)]<-2.090406
+
+dspv1<-as.numeric(substr(wave1$H1RF11, start = 2, stop = 2))
+dspv1[which(dspv1==1|dspv1==2|dspv1==6)]<-1
+dspv1[which(dspv1==3|dspv1==4|dspv1==5)]<-0
+dspv2<-as.numeric(substr(wave1$H1RF12, start = 2, stop = 2))
+dspv2[which(dspv2==1|dspv2==2|dspv2==6)]<-1
+dspv2[which(dspv2==3|dspv2==4|dspv2==5)]<-0
+dspv3<-as.numeric(substr(wave1$H1RF13, start = 2, stop = 2))
+dspv3[which(dspv3==1|dspv3==2)]<-1
+dspv3[which(dspv3==3|dspv3==4|dspv3==5)]<-0
+dspv<-rowSums(cbind(dspv1, dspv2, dspv3), na.rm = TRUE)
+mean(dspv)
+dspv[which(as.numeric(spss1$H1RF11)==8)]<-1.100092
+
+dat1$MotherSupervision<-mspv
+dat1$FatherSupervision<-dspv
+```
+## parent involvement with education
+parental involvement with schoolwork
+* no mom/dad = mean
+```{r}
+minvolve1<-as.numeric(substr(wave1$H1WP17H, start = 2, stop = 2))
+minvolve2<-as.numeric(substr(wave1$H1WP17I, start = 2, stop = 2))
+minvolve3<-as.numeric(substr(wave1$H1WP17J, start = 2, stop = 2))
+minvolve<-minvolve1+minvolve2+minvolve3
+mean(minvolve, na.rm = TRUE)
+minvolve[which(as.numeric(spss1$H1WP17H)==4)]<-1.280745 #no mom
+summary(as.factor(minvolve))
+
+dinvolve1<-as.numeric(substr(wave1$H1WP18H, start = 2, stop = 2))
+dinvolve2<-as.numeric(substr(wave1$H1WP18I, start = 2, stop = 2))
+dinvolve3<-as.numeric(substr(wave1$H1WP18J, start = 2, stop = 2))
+dinvolve<-dinvolve1+dinvolve2+dinvolve3
+mean(dinvolve, na.rm = TRUE)
+dinvolve[which(as.numeric(spss1$H1WP18H)==4)]<- 1.068472 #no dad
+summary(as.factor(dinvolve))
+
+dat1$MotherInvolveSchool<-minvolve
+dat1$FatherInvolveSchool<-dinvolve
+```
+
+parent involvement in PTA
+```{r}
+levels(wave1$PA27A)
+PAPTA<-as.numeric(substr(wave1$PA27A, start = 2, stop = 2))
+dat1$ParentPTA<-PAPTA
+```
+
+Parent in school fund-raising
+```{r}
+levels(spss1$PC28)
+PAfund<-as.numeric(substr(wave1$PC28, start = 2, stop = 2)) #many missing due to legitimate skip -- adolescent not in school now; for this project because the focus is on family variables (not school variables), this just is treated as missing
+dat1$ParentFundRaise<-PAfund
+```
+
+Parent met teachers
+```{r}
+levels(wave1$PC27)
+PAteacher<-as.numeric(substr(wave1$PC27, start = 2, stop = 2))#many missing due to legitimate skip -- adolescent not in school now; for this project because the focus is on family variables (not school variables), this just is treated as missing
+dat1$ParentMetTeacher<-PAteacher
+```
+
+Adolescents' perceptions of parents' educational expectations
+* no mom/dad = mean
+```{r}
+mexp<-rowMeans(cbind(wave1$H1WP11, wave1$H1WP12), na.rm = TRUE)
+mean(mexp, na.rm = TRUE)
+mexp[which(as.numeric(spss1$H1WP11)==7)]<-4.341575 #no mom->0
+dexp<-rowMeans(cbind(wave1$H1WP15, wave1$H1WP16), na.rm = TRUE)
+mean(dexp, na.rm = TRUE)
+dexp[which(as.numeric(spss1$H1WP15)==7)]<-4.363035 #no dad->0
+
+summary(dexp)
+
+dat1$MotherEducationExpectation<-mexp
+dat1$FatherEducationExpectation<-dexp
+```
+## family sociocultural characteristics
+Parent nativity
+*No mom/dad code as mean
+```{r}
+#youth report
+YmomUSborn<-as.numeric(substr(wave1$H1RM2, start = 2, stop = 2))
+mean(YmomUSborn, na.rm = TRUE)
+YmomUSborn[which(as.numeric(spss1$H1RM2)==4)]<- 0.8798627
+summary(as.factor(YmomUSborn))
+
+YdadUSborn<-as.numeric(substr(wave1$H1RF2, start = 2, stop = 2))
+mean(YdadUSborn, na.rm = TRUE)
+YdadUSborn[which(as.numeric(spss1$H1RF2)==4)]<- 0.8700154
+summary(as.factor(YdadUSborn))
+
+dat1$MotherNativity<-YmomUSborn
+dat1$FatherNativity<-YdadUSborn
+```
+
+
+Parent years in the U.S.
+```{r}
+summary(spss1$PC65_Y)
+table(as.numeric(spss1$PC65_Y))
+PAyearsUS<-(as.numeric(wave1$IYEAR)+1993)- (as.numeric(substr(wave1$PC65_Y, start = 2, stop = 3))+1976) +((as.numeric(substr(wave1$IMONTH, start=2, stop=3)))-(as.numeric(substr(wave1$PC65_M, start=2, stop=3))))/12
+PAyearsUS[which(as.numeric(spss1$PC65_Y)==20)] <- dat1[which(as.numeric(spss1$PC65_Y)==20),]$ParentAge #legitimate skip; but don't need to control bc of filling in age
+summary(PAyearsUS)
+dat1$ParentYearsInUS<-PAyearsUS
+#forgot to add in the first round of data curation; add this column back to where it belongs
+#library(tibble)
+#dat1_c<-add_column(dat1, ParentYearsInUS = PAyearsUS, .after = 'FatherNativity')
+#dat1<-dat1_c
+```
+
+Parent religiosity
+* no religion--coded as lowest (Stokes, 2008)
+* reverse-coded
+```{r}
+levels(wave1$PA23)
+levels(spss1$PA23)
+PArelig1<-5-as.numeric(substr(wave1$PA23, start = 2, stop = 2))
+PArelig1[which(as.numeric(spss1$PA23)==6)]<-1
+PArelig2<-5-as.numeric(substr(wave1$PA24, start = 2, stop = 2))
+PArelig2[which(as.numeric(spss1$PA24)==6)]<-1
+PArelig<-rowMeans(cbind(PArelig1, PArelig2), na.rm = TRUE)
+dat1$ParentReligiosity<-PArelig
+hist(PArelig)
+```
+
+
+
+English as home language
+```{r}
+EnglishHome<-as.numeric(substr(wave1$H1GI10, start = 2, stop = 2))
+EnglishHome[which(EnglishHome==2|EnglishHome==3)]<-0
+dat1$EnglishHome<-EnglishHome
+```
+
+## family health resources & behaviors
+parent self-rated health
+* reverse-coded
+```{r}
+levels(wave1$PA58)
+PAhealth<-6-as.numeric(substr(wave1$PA58, start = 2, stop = 2))
+dat1$ParentHealth<-PAhealth
+```
+
+parent smoke
+```{r}
+levels(wave1$PA64)
+PAsmoke<-as.numeric(substr(wave1$PA64, start = 2, stop = 2))
+PAsmoke[which(as.numeric(spss1$PA64)==4)]<-0 #legitimate skip-> no smokers in family
+summary(as.factor(PAsmoke))
+dat1$ParentSmoke<-PAsmoke
+```
+
+Parent alcoholic (household)
+```{r}
+BioMomAlc<-as.numeric(substr(wave1$PC49E_2, start = 2, stop = 2))
+BioDadAlc<-as.numeric(substr(wave1$PC49E_3, start = 2, stop = 2))
+malcohol<-rep(NA, 6504)
+malcohol[(which(BioMom==1 & BioMomAlc==1))]<-1
+malcohol[(which(BioMom==1 & BioMomAlc==0))]<-0
+mean(malcohol, na.rm=TRUE)
+malcohol[which(HasMom==0)]<-0.0141125
+summary(as.factor(malcohol))
+
+dalcohol<-rep(NA, 6504)
+dalcohol[(which(BioDad==1 & BioDadAlc==1))]<-1
+dalcohol[(which(BioDad==1 & BioDadAlc==0))]<-0
+mean(dalcohol, na.rm=TRUE)
+dalcohol[which(HasDad==0)]<-0.06048632
+summary(as.factor(dalcohol))
+
+dat1$MotherAlcoholic<-malcohol
+dat1$FatherAlcoholic<-dalcohol
+```
+
+Parent obese (household)
+```{r}
+BioMomObese<-as.numeric(substr(wave1$PC49A_2, start = 2, stop = 2))
+BioDadObese<-as.numeric(substr(wave1$PC49A_3, start = 2, stop = 2))
+MomObese<-rep(NA, 6504)
+MomObese[(which(BioMom==1 & BioMomObese==1))]<-1
+MomObese[(which(BioMom==1 & BioMomObese==0))]<-0
+mean(MomObese, na.rm=TRUE)
+MomObese[which(HasMom==0)]<-0.1901437
+summary(as.factor(MomObese))
+
+DadObese<-rep(NA, 6504)
+DadObese[(which(BioDad==1 & BioDadObese==1))]<-1
+DadObese[(which(BioDad==1 & BioDadObese==0))]<-0
+mean(DadObese, na.rm=TRUE)
+DadObese[which(HasDad==0)]<-0.1127865
+summary(as.factor(DadObese))
+
+dat1$MotherObese<-MomObese
+dat1$FatherObese<-DadObese
+```
+
+Mother/father disabled
+*No mom/dad code as mean
+```{r}
+mdisable<-as.numeric(substr(wave1$H1RM10, start = 2, stop = 2))
+mean(mdisable, na.rm = TRUE)
+mdisable[which(as.numeric(spss1$H1RM10)==4)]<- 0.04313021
+summary(as.factor(mdisable))
+
+ddisable<-as.numeric(substr(wave1$H1RF10, start = 2, stop = 2))
+mean(ddisable, na.rm = TRUE)
+ddisable[which(as.numeric(spss1$H1RF10)==4)]<- 0.05724351
+summary(as.factor(ddisable))
+
+dat1$MotherDisable<-mdisable
+dat1$FatherDisable<-ddisable
+```
+
+Smoker(s) in household
+```{r}
+HHsmoke<-as.numeric(substr(wave1$PA63, start = 2, stop = 2))
+dat1$SmokerHousehold<-HHsmoke
+```
+
+Illegal drugs in household
+```{r}
+HHdrug<-as.numeric(substr(wave1$H1TO52, start = 2, stop = 2))
+dat1$DrugHousehold<-HHdrug
+```
+
+Family access to medical care (reverse-coded)
+```{r}
+fammed<-5-as.numeric(substr(wave1$PA59, start = 2, stop = 2))
+summary(as.factor(fammed))
+dat1$FamilyAccessMedicalCare<-fammed
+```
+
+## parent and family relationship history
+Parents' number of previous marriage or marriage-like relationships
+```{r}
+summary(as.factor(wave1$PA40))
+PArelationnum<-as.numeric(substr(wave1$PA40, start = 2, stop = 2))
+summary(as.factor(PArelationnum))
+dat1$ParentPreviousRelationship<-PArelationnum
+```
+
+Nonresident biological father unknown or deceased
+* legitimate skip: dad is biological father
+```{r}
+table(spss1$H1NF1)
+table(as.numeric(spss1$H1NF1))
+table(spss1$H1NF2)
+table(as.numeric(spss1$H1NF2))
+nrbiodad<-rep(NA, 6504)
+nrbiodad[which(as.numeric(spss1$H1NF1)==1|as.numeric(spss1$H1NF1)==5)]<-0
+nrbiodad[which(as.numeric(spss1$H1NF2)==1)]<-0
+nrbiodad[which(as.numeric(spss1$H1NF1)==2 & as.numeric(spss1$H1NF2)==2)]<-1
+mean(nrbiodad, na.rm=T)
+
+nrbiodad[which(as.numeric(spss1$H1NF1)==4)]<-0.7259314
+summary(as.factor(nrbiodad))
+
+dat1$NonresidentBioFatherDeceased<-nrbiodad
+```
+
+Number of years child had lived with stepfather
+* legitimate skip: no stepfather in the house roster
+```{r}
+table(spss1$H1HR6A)
+stepdadA<-as.numeric(as.numeric(spss1$H1HR6A)==2)
+stepdadB<-as.numeric(as.numeric(spss1$H1HR6B)==2)
+stepdadC<-as.numeric(as.numeric(spss1$H1HR6C)==2)
+stepdadD<-as.numeric(as.numeric(spss1$H1HR6D)==2)
+stepdadE<-as.numeric(as.numeric(spss1$H1HR6E)==2)
+stepdadF<-as.numeric(as.numeric(spss1$H1HR6F)==2)
+stepdadG<-as.numeric(as.numeric(spss1$H1HR6G)==2)
+stepdadH<-as.numeric(as.numeric(spss1$H1HR6H)==2)
+stepdadI<-as.numeric(as.numeric(spss1$H1HR6I)==2)
+stepdadJ<-as.numeric(as.numeric(spss1$H1HR6J)==2)
+
+stepdadtot<-stepdadA+stepdadB+stepdadC+stepdadD+stepdadE+stepdadF+stepdadG+stepdadH+stepdadI+stepdadJ
+table(stepdadtot) #510 stepdad; at most 1 stepdad a family
+
+stepdaddat<-data.frame(cbind(stepdadA, stepdadB, stepdadC, stepdadD, stepdadE, stepdadF, stepdadG, stepdadH, stepdadI, stepdadJ))
+
+summary(wave1$H1HR9A)
+summary(wave1$H1HR10A)
+
+alwayssameHHA<-as.numeric(substr(wave1$H1HR9A, start = 2, stop = 2))
+alwayssameHHB<-as.numeric(substr(wave1$H1HR9B, start = 2, stop = 2))
+alwayssameHHC<-as.numeric(substr(wave1$H1HR9C, start = 2, stop = 2))
+alwayssameHHD<-as.numeric(substr(wave1$H1HR9D, start = 2, stop = 2))
+alwayssameHHE<-as.numeric(substr(wave1$H1HR9E, start = 2, stop = 2))
+alwayssameHHF<-as.numeric(substr(wave1$H1HR9F, start = 2, stop = 2))
+alwayssameHHG<-as.numeric(substr(wave1$H1HR9G, start = 2, stop = 2))
+alwayssameHHH<-as.numeric(substr(wave1$H1HR9H, start = 2, stop = 2))
+alwayssameHHI<-as.numeric(substr(wave1$H1HR9I, start = 2, stop = 2))
+alwayssameHHJ<-as.numeric(substr(wave1$H1HR9J, start = 2, stop = 2))
+
+alwayssamedat<-data.frame(cbind(alwayssameHHA, alwayssameHHB, alwayssameHHC, alwayssameHHD, alwayssameHHE, alwayssameHHF, alwayssameHHG, alwayssameHHH, alwayssameHHI, alwayssameHHJ))
+
+sameHHyears<-data.frame(cbind(wave1$H1HR10A, wave1$H1HR10B, wave1$H1HR10C, wave1$H1HR10D, wave1$H1HR10E, wave1$H1HR10F, wave1$H1HR10G, wave1$H1HR10H, wave1$H1HR10I, wave1$H1HR10J))
+Yage<-(as.numeric(wave1$IYEAR)+1993)- (as.numeric(wave1$H1GI1Y)+1973)+((as.numeric(substr(wave1$IMONTH, start=2, stop=3)))-(as.numeric(substr(wave1$H1GI1M, start=2, stop=3))))/12
+stepdadyears<-rep(NA, 6504)
+for(i in 1:6504){
+  for (j in 1:10){
+    if(stepdaddat[i,j]==1){
+      if(!is.na(alwayssamedat[i,j]) & alwayssamedat[i,j]==1){
+        stepdadyears[i]<- Yage[i]
+      }
+      if(!is.na(alwayssamedat[i,j] ) & alwayssamedat[i,j]==0){
+        stepdadyears[i]<-sameHHyears[i,j]
+      }
+    }
+  }
+}
+
+describe(stepdadyears)
+mean(stepdadyears, na.rm = T)
+summary(stepdadyears[stepdadtot==0])
+
+stepdadyears[stepdadtot==0]<-7.569198
+
+dat1$YearsLiveStepfather<-stepdadyears
+```
+
+Child born to adolescent parent
+* should only count the biological parent case
+```{r}
+Yage<-(as.numeric(wave1$IYEAR)+1993)- (as.numeric(wave1$H1GI1Y)+1973)+((as.numeric(substr(wave1$IMONTH, start=2, stop=3)))-(as.numeric(substr(wave1$H1GI1M, start=2, stop=3))))/12
+summary(wave1$PA2)
+PAbornage<-wave1$PA2-Yage
+PCrelat<-as.numeric(substr(wave1$PC1, start = 2, stop = 3))
+table(PCrelat)
+PAbornage[which(PCrelat!=1 & PCrelat!=9)]<-NA
+summary(PAbornage)
+PAbornage[which(PAbornage<12)]<-NA
+PAteen<-as.numeric(PAbornage<18)
+summary(as.factor(PAteen))
+dat1$BornToAdolescentParent<-PAteen
+```
+
+## Adverse family experiences
+
+Load wave 4 data
+```{r}
+load("Wave4InHome.rda")
+wave4<-da21600.0022
+dat4<-wave4[c("AID")]
+```
+
+Emotional abuse
+```{r}
+table(wave4$H4MA1)
+emoabuse<-as.numeric(substr(wave4$H4MA1, start = 2, stop = 2))
+table(emoabuse)
+emoabuse[which(emoabuse==6)]<-0
+dat4$EmotionalAbuse<-emoabuse
+```
+
+Physical abuse
+```{r}
+table(wave4$H4MA3)
+phyabuse<-as.numeric(substr(wave4$H4MA3, start = 2, stop = 2))
+table(phyabuse)
+phyabuse[which(phyabuse==6)]<-0
+dat4$PhysicalAbuse<-phyabuse
+```
+
+Biological mother incarceration times
+```{r}
+summary(wave4$H4WP3)
+summary(wave4$H4WP4)
+momincar<-as.numeric(substr(wave4$H4WP3, start = 2, stop = 2))
+momincart<-as.numeric(substr(wave4$H4WP4, start = 2, stop = 2))
+momincart[which(momincar==0)]<-0
+summary(as.factor(momincart))
+dat4$BioMotherIncarceration<-momincart
+```
+
+Biological father incarceration times
+```{r}
+summary(wave4$H4WP9)
+summary(wave4$H4WP10)
+dadincar<-as.numeric(substr(wave4$H4WP9, start = 2, stop = 2))
+table(dadincar)
+dadincart<-wave4$H4WP10
+table(dadincart)
+dadincart[which(dadincar==0)]<-0
+summary(as.factor(dadincart))
+dat4$BioFatherIncarceration<-dadincart
+```
+
+## Adolescent demographic characteristics
+Biological Sex, Age
+```{r}
+dat1$Sex<-as.numeric(substr(wave1$BIO_SEX, start=2, stop = 2))-1
+wave1$Age<-(as.numeric(wave1$IYEAR)+1993)- (as.numeric(wave1$H1GI1Y)+1973)+((as.numeric(substr(wave1$IMONTH, start=2, stop=3)))-(as.numeric(substr(wave1$H1GI1M, start=2, stop=3))))/12
+dat1$Age<-wave1$Age
+describe(dat1$Age)
+```
+
+Race/Ethnicity
+```{r}
+#Latino
+latino<-as.numeric(substr(wave1$H1GI4, start = 2, stop = 2))
+#White
+white<-as.numeric(substr(wave1$H1GI6A, start = 2, stop = 2))
+#African American
+AA<-as.numeric(substr(wave1$H1GI6B, start = 2, stop = 2))
+#Native American
+Native<-as.numeric(substr(wave1$H1GI6C, start = 2, stop = 2))
+#Asian
+Asian<-as.numeric(substr(wave1$H1GI6D, start = 2, stop = 2))
+#Other
+Other<-as.numeric(substr(wave1$H1GI6E, start = 2, stop = 2))
+
+#Using white as a reference
+dat1$Latinx<-latino
+dat1$Black<-AA
+dat1$NativeAmerican<-Native
+dat1$AAPI<-Asian
+dat1$OtherRace<-Other
+```
+
+## Educational attainment at Wave 4
+Recode: 8 = 8th grade or less, 10 = some high school, 12 = high school graduate, 13 = vocational/technical training after high school, 14 = some college, 16 = bachelor's degree, 17 = some graduate school or some post-baccalaureate professional education, 18 = master's degree, 19 = some graduate training beyond a master’s degree, and 20 = doctoral degree or completed post-baccalaureate professional education (e.g., law school, medical school, nurse).
+```{r}
+education<-as.numeric(substr(wave4$H4ED2, start = 2, stop = 3)) #highest level of education
+edu_re<-rep(NA, 5114)
+edu_re[which(education==1)]<-8
+edu_re[which(education==2)]<-10
+edu_re[which(education==3)]<-12
+edu_re[which(education==4|education==5)]<-13
+edu_re[which(education==6)]<-14
+edu_re[which(education==7)]<-16
+edu_re[which(education==8|education==12)]<-17
+edu_re[which(education==9)]<-18
+edu_re[which(education==10)]<-19
+edu_re[which(education==11|education==13)]<-20
+summary(as.factor(edu_re))
+
+dat4$EducationAttainment<-edu_re
+```
+
+Combine dat1 & dat4
+```{r}
+dat14<-merge(dat1, dat4, by = "AID")
+write.csv(dat14, "dat14_JMF.csv", row.names = F)
+```
+
+## data preparation
+Check missingness
+```{r}
+colmiss<-sapply(dat14, function(x) sum(is.na (x)))/51.14 #variable-wise
+summary(colmiss) 
+which(colmiss>=25)
+dat14_re<-dat14[,c(1:35, 38:71)] #delete these two variables
+colmiss_re<-sapply(dat14_re, function(x) sum(is.na (x)))/51.14 #variable-wise
+summary(colmiss_re) #range & descriptives of missingness
+```
+
+corelation checks
+```{r}
+
+for(i in 2:67){
+  for (j in (i+1):68){
+    r = cor(dat14_re[,i], dat14_re[,j], use="pairwise.complete.obs")
+    if (r > .50){
+      print(paste(r, names(dat14_re)[i], names(dat14_re)[j]))
+    }
+  }
+}
+
+#none were correlated more than .80
+
+```
+
+MissForest imputation
+```{r}
+library(missForest)
+doParallel::registerDoParallel(cores = 4) 
+doRNG::registerDoRNG(seed = 123)
+#need to specify the categorical variables
+names(dat14_re)
+factorcols<-c("ResidentMotherPresence", "ResidentFatherPresence", "ResidentBiologicalParents", "ParentMarried", "BirthOrder", "MotherWorkForPay", "FatherWorkForPay", "PublicAssistance", "Welfare", "EconomicHardship", "ParentPartnered","ParentPTA", "MotherNativity", "FatherNativity", "EnglishHome", "ParentSmoke", "MotherAlcoholic", "FatherAlcoholic", "MotherObese", "FatherObese", "MotherDisable", "FatherDisable", "SmokerHousehold", "DrugHousehold", "NonresidentBioFatherDeceased", "BornToAdolescentParent", "Sex", "Latinx", "Black" ,"NativeAmerican","AAPI", "OtherRace")
+dat14_re[factorcols] <- lapply(dat14_re[factorcols], factor)
+str(dat14_re)
+imputed_dat14_re <- missForest(dat14_re[,2:69], parallelize = 'forests', verbose=T)$ximp #LEAVE OUT The AID
+
+write.csv(imputed_dat14_re, "imputed_dat14_re_JMF.csv", row.names = F)
+imputed_dat14_re<-read.csv("imputed_dat14_re_JMF.csv")
+str(imputed_dat14_re)
+#convert back to numeric format
+imputed_dat14_re[factorcols] <- sapply(dat14_re[factorcols], as.numeric)
+
+```
+
+Sample weights
+```{r}
+load("Wave4Weights.rda")
+Wave4Weights<-da21600.0031
+Wave4Weights_c<-Wave4Weights[c('AID', 'GSWGT4_2')]
+write.csv(Wave4Weights_c, "Wave4Weights_c.csv", row.names = F)
+all.equal(as.character(Wave4Weights_c$AID), as.character(dat14_re$AID)) #AID all match
+
+```
+## preliminary analysis
+
+prepare the data for preliminary analysis
+```{r}
+dat_prelim<-cbind(dat14["AID"], imputed_dat14_re)
+stepdad<-as.numeric(stepdadtot==0)
+#then also add some control variables into it
+extra_control<-cbind(dat1["AID"], BioDad, stepdad)
+dat_prelim_c<-merge(dat_prelim, extra_control, by="AID")
+dat_prelim_c[,2:71]<-scale(dat_prelim_c[,2:71]) #scaling all the variables for standardized coefs
+describe(dat_prelim_c)
+```
+
+```{r}
+prelim_coefs<-data.frame("Variable" = names(dat14_re)[c(2:57, 65:68)])
+prelim_coefs
+prelim_coefs$control<-rep(NA, 60)
+prelim_coefs$coefs<-rep(NA,60)
+prelim_coefs$CI_L<-rep(NA,60)
+prelim_coefs$CI_U<-rep(NA,60)
+
+prelim_coefs[prelim_coefs$Variable%in%c("MotherEducation", "MotherOccupationPrestige", "MotherWorkForPay","MotherRelationshipQuality","MotherSharedActivity","MotherSupervision","MotherInvolveSchool","MotherEducationExpectation","MotherNativity","MotherAlcoholic","MotherObese","MotherDisable"),]$control<-"ResidentMotherPresence"
+prelim_coefs[prelim_coefs$Variable%in%c("FatherEducation", "FatherOccupationPrestige", "FatherWorkForPay","FatherRelationshipQuality","FatherSharedActivity","FatherSupervision","FatherInvolveSchool","FatherEducationExpectation","FatherNativity","FatherAlcoholic","FatherObese","FatherDisable"),]$control<-"ResidentFatherPresence"
+prelim_coefs[prelim_coefs$Variable%in%c("ParentPartnerRelationship"),]$control<-"ParentPartnered"
+prelim_coefs[prelim_coefs$Variable%in%c("NonresidentBioFatherDeceased"),]$control<-"BioDad" 
+prelim_coefs[prelim_coefs$Variable%in%c("YearsLiveStepfather"),]$control<-"stepdad" 
+```
+
+### LM for individual predictors
+```{r}
+for(i in 1:60){
+  varname<-prelim_coefs$Variable[i]
+  control<-prelim_coefs$control[i]
+  if(is.na(control)){
+    formulai<-paste("EducationAttainment~", varname, "+Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace")
+  }
+  else{
+    formulai<-paste("EducationAttainment~", varname,"+", control, "+Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace")
+  }
+  print(formulai)
+  lm_model<-lm(as.formula(formulai), data=dat_prelim_c, weights=Wave4Weights_c$GSWGT4_2)
+  prelim_coefs$coefs[i]<-lm_model$coefficients[2]
+  prelim_coefs$CI_L[i]<-confint(lm_model, varname, 1-0.05/60)[1]
+  prelim_coefs$CI_U[i]<-confint(lm_model, varname, 1-0.05/60)[2]
+}
+
+write.csv(prelim_coefs, "prelim_coefs.csv", row.names = F)
+```
+
+Visualizing the lm coefficients
+```{r}
+#first, order the coefficients
+prelim_coefs_c<-prelim_coefs[order(prelim_coefs$coefs, decreasing = T),]
+colnames(prelim_coefs_c)[3]<-"Coefficient"
+varorder<-rev(prelim_coefs_c$Variable)
+prelim_coefs_c$Variable<-factor(prelim_coefs_c$Variable, levels= varorder)
+library(ggplot2)
+p<-ggplot(prelim_coefs_c, 
+       aes(x = Variable, y = Coefficient)) +
+        geom_hline(yintercept = 0, 
+                   colour = gray(1/2), lty = 2) +
+        geom_point(aes(x = Variable, 
+                    y = Coefficient)) + 
+        geom_linerange(aes(x = Variable, 
+                     ymin = CI_L,
+                     ymax = CI_U),
+                   lwd = 1/2) +
+        ggtitle("Outcome: Educational Attainment") +
+        coord_flip()
+ggsave("prelim_coefs.png", width = 15, height = 30, units = "cm")
+
+write.csv(prelim_coefs_c, "prelim_coefs_c.csv", row.names = F)
+
+```
+
+Count the significant ones
+```{r}
+prelim_coefs_c$sig<-rep(NA, 60)
+prelim_coefs_c$sig<-as.numeric((prelim_coefs_c$CI_L>0 & prelim_coefs_c$CI_U>0)|(prelim_coefs_c$CI_L<0 & prelim_coefs_c$CI_U<0))
+sum(prelim_coefs_c$sig==1) #46 variables
+```
+
+Rank by absolute values
+```{r}
+prelim_coefs_c$Coefficient_abs<-abs(prelim_coefs_c$Coefficient)
+prelim_coefs_cc<-prelim_coefs_c[order(prelim_coefs_c$Coefficient_abs, decreasing = T),]
+```
+
+### R_squared for different domains of family experiences
+
+```{r}
+#Demographic variables only
+lm_model<-lm(EducationAttainment~Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace, data=dat_prelim_c, weights=Wave4Weights_c$GSWGT4_2)
+summary(lm_model) #R2 = 0.0467
+
+#family structural characteristics
+lm_model<-lm(EducationAttainment~ResidentMotherPresence+ ResidentFatherPresence+ ResidentBiologicalParents+ ParentMarried+ ParentPartnered+ HouseholdSize + NumberSiblings+ BirthOrder+ ParentAge+
+               Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace, data=dat_prelim_c, weights=Wave4Weights_c$GSWGT4_2)
+summary(lm_model) #R2 = 0.1394
+
+#family socioeconomic characteristics
+lm_model<-lm(EducationAttainment~ResidentMotherPresence+ ResidentFatherPresence+
+               MotherEducation+FatherEducation+MotherOccupationPrestige+FatherOccupationPrestige+ MotherWorkForPay+FatherWorkForPay+FamilyIncome+PublicAssistance+Welfare+EconomicHardship+
+               Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace, data=dat_prelim_c, weights=Wave4Weights_c$GSWGT4_2)
+summary(lm_model)  #R2 = 0.2876
+
+#family relationships and parenting
+lm_model<-lm(EducationAttainment~ResidentMotherPresence+ ResidentFatherPresence+ ParentPartnered+ 
+               FamilySocialSupport+SharedDinner+IntergenerationalClosure+ParentConnectionFriends+ MotherRelationshipQuality+FatherRelationshipQuality+MotherSharedActivity+FatherSharedActivity+ ParentPartnerRelationship+ParentControl+MotherSupervision+FatherSupervision+
+               Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace, data=dat_prelim_c, weights=Wave4Weights_c$GSWGT4_2)
+summary(lm_model) #R2 = 0.1632
+
+#parent involvement with education
+lm_model<-lm(EducationAttainment~ResidentMotherPresence+ ResidentFatherPresence+
+              MotherInvolveSchool+FatherInvolveSchool+ParentPTA+MotherEducationExpectation+ FatherEducationExpectation+
+               Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace, data=dat_prelim_c, weights=Wave4Weights_c$GSWGT4_2)
+summary(lm_model)  #R2 = 0.1927
+
+#family sociocultural characteristics
+lm_model<-lm(EducationAttainment~ResidentMotherPresence+ ResidentFatherPresence+
+              MotherNativity+FatherNativity+ParentYearsInUS+ParentReligiosity+EnglishHome+
+               Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace, data=dat_prelim_c, weights=Wave4Weights_c$GSWGT4_2)
+summary(lm_model)  #R2 = 0.1076
+
+#family health resources and behaviors
+lm_model<-lm(EducationAttainment~ResidentMotherPresence+ ResidentFatherPresence+
+                ParentHealth+ParentSmoke+MotherAlcoholic+FatherAlcoholic+MotherObese+FatherObese+ MotherDisable+FatherDisable+SmokerHousehold+DrugHousehold+FamilyAccessMedicalCare+
+               Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace, data=dat_prelim_c, weights=Wave4Weights_c$GSWGT4_2)
+summary(lm_model)  #R2 = .2031
+
+#parent and family relationship history
+lm_model<-lm(EducationAttainment~ResidentMotherPresence+ ResidentFatherPresence+
+                ParentPreviousRelationship+NonresidentBioFatherDeceased+BioDad+YearsLiveStepfather+
+               stepdad+BornToAdolescentParent+
+               Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace, data=dat_prelim_c, weights=Wave4Weights_c$GSWGT4_2)
+summary(lm_model)  #R2 = 0.1061
+
+#adverse family experiences
+lm_model<-lm(EducationAttainment~ResidentMotherPresence+ ResidentFatherPresence+
+                EmotionalAbuse+PhysicalAbuse +BioMotherIncarceration +BioFatherIncarceration +
+               Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace, data=dat_prelim_c, weights=Wave4Weights_c$GSWGT4_2)
+summary(lm_model)  #R2 = 0.09413
+
+#ALL
+formulai<-paste("EducationAttainment~", paste(prelim_coefs$Variable, collapse = "+"), "+Sex+Age+Latinx+Black+NativeAmerican+AAPI+OtherRace")
+lm_model<-lm(as.formula(formulai), data=dat_prelim_c, weights=Wave4Weights_c$GSWGT4_2)
+summary(lm_model) #R2 = 0.3714
+```
+
